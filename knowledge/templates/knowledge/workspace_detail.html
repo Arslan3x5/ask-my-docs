@@ -1,0 +1,16 @@
+{% extends "knowledge/base.html" %}
+{% block title %}{{ ws.name }} · AskMyDocs{% endblock %}
+{% block content %}
+<main>
+  <p><a href="{% url 'workspaces' %}">All workspaces</a></p>
+  <h1>{{ ws.name }}</h1>
+  <p class="sub">Documents will appear here once uploads are added in the next stage.</p>
+  <div class="card">
+    <strong>Delete this workspace</strong>
+    <p class="sub" style="margin:.3rem 0 .8rem">This permanently removes the workspace and everything in it.</p>
+    <form method="post" action="{% url 'workspace_delete' ws.pk %}" onsubmit="return confirm('Delete this workspace and all its documents?')">{% csrf_token %}
+      <button class="btn danger" type="submit">Delete workspace</button>
+    </form>
+  </div>
+</main>
+{% endblock %}

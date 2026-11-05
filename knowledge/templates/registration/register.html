@@ -1,0 +1,10 @@
+{% extends "knowledge/base.html" %}
+{% block title %}Create account · AskMyDocs{% endblock %}
+{% block content %}
+<main class="auth">
+  <h1>Create your account</h1>
+  <p class="sub">Your documents stay on this server and are private to you.</p>
+  <form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn" type="submit">Create account</button></form>
+  <p><a href="{% url 'login' %}">I already have an account</a></p>
+</main>
+{% endblock %}
