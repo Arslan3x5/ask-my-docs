@@ -1,5 +1,13 @@
-﻿from django.urls import path
+from django.contrib.auth import views as auth_views
+from django.urls import path
 
 from . import views
 
-urlpatterns = [path("", views.home, name="home")]
+urlpatterns = [
+    path("", views.workspaces, name="workspaces"),
+    path("login/", auth_views.LoginView.as_view(), name="login"),
+    path("logout/", auth_views.LogoutView.as_view(), name="logout"),
+    path("register/", views.register, name="register"),
+    path("workspace/<int:pk>/", views.workspace_detail, name="workspace_detail"),
+    path("workspace/<int:pk>/delete/", views.workspace_delete, name="workspace_delete"),
+]

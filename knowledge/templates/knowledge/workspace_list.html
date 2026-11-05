@@ -1,0 +1,20 @@
+{% extends "knowledge/base.html" %}
+{% block title %}Workspaces · AskMyDocs{% endblock %}
+{% block content %}
+<main>
+  <h1>Your workspaces</h1>
+  <p class="sub">A workspace is a private collection of documents you can search and ask questions about.</p>
+  <form class="card add" method="post">{% csrf_token %}
+    {{ form.name }}
+    <button class="btn" type="submit">Create workspace</button>
+  </form>
+  {{ form.name.errors }}
+  <div class="list">
+    {% for w in items %}
+    <a class="item" href="{% url 'workspace_detail' w.pk %}">{{ w.name }}<span>{{ w.created_at|date:"j M Y" }}</span></a>
+    {% empty %}
+    <p class="sub">No workspaces yet. Create your first one above.</p>
+    {% endfor %}
+  </div>
+</main>
+{% endblock %}

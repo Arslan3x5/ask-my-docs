@@ -1,0 +1,10 @@
+{% extends "knowledge/base.html" %}
+{% block title %}Log in · AskMyDocs{% endblock %}
+{% block content %}
+<main class="auth">
+  <h1>Welcome back</h1>
+  <p class="sub">Log in to your workspaces.</p>
+  <form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn" type="submit">Log in</button></form>
+  <p><a href="{% url 'register' %}">Create an account</a></p>
+</main>
+{% endblock %}

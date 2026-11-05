@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}AskMyDocs{% endblock %}</title>
+<style>
+:root{--bg:#f3f7f6;--panel:#fff;--ink:#10201c;--muted:#5a6f69;--line:#d9e4e1;--accent:#0f766e;--accent-ink:#fff;--bad:#c2410c}
+@media (prefers-color-scheme:dark){:root{--bg:#0a1513;--panel:#10201d;--ink:#e6f1ee;--muted:#8aa39d;--line:#1f3631;--accent:#34d3c0;--accent-ink:#04201b;--bad:#f08a5d;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header{display:flex;justify-content:space-between;align-items:center;padding:.8rem clamp(1rem,4vw,2.5rem);border-bottom:1px solid var(--line);background:var(--panel)}
+header a.brand{font-weight:800;letter-spacing:-.02em;text-decoration:none;color:var(--ink)}
+header form{display:flex;gap:.8rem;align-items:center;color:var(--muted)}
+main{max-width:860px;margin:auto;padding:2rem clamp(1rem,4vw,2rem)}
+h1{margin:0 0 .3rem;font-size:clamp(1.6rem,3vw,2.2rem);letter-spacing:-.03em}
+.sub{margin:0 0 1.5rem;color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.2rem}
+input{width:100%;padding:.6rem .8rem;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:inherit;font:inherit}
+.btn{border:0;border-radius:10px;padding:.6rem 1.1rem;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.ghost{background:none;color:var(--muted);border:1px solid var(--line)}
+.btn.danger{background:none;color:var(--bad);border:1px solid var(--bad)}
+.add{display:grid;grid-template-columns:1fr auto;gap:.6rem}
+.list{display:grid;gap:.8rem;margin-top:1.2rem}
+.list a.item{display:flex;justify-content:space-between;padding:1rem 1.2rem;border:1px solid var(--line);border-radius:14px;background:var(--panel);text-decoration:none;color:var(--ink);font-weight:600}
+.list a.item span{color:var(--muted);font-weight:400}
+.auth{max-width:380px;margin:9vh auto;padding:0 1rem}
+.auth form{display:grid;gap:.8rem;margin-top:1.2rem}
+.auth form p{margin:0;display:grid;gap:.25rem;font-weight:500}
+.helptext{color:var(--muted);font-size:.85rem;font-weight:400}
+.errorlist{color:var(--bad);font-size:.88rem;margin:.3rem 0 0;padding-left:1.1rem}
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="{% url 'workspaces' %}">AskMyDocs</a>
+  {% if request.user.is_authenticated %}
+  <form method="post" action="{% url 'logout' %}">{% csrf_token %}{{ request.user.username }}<button class="btn ghost" type="submit">Log out</button></form>
+  {% endif %}
+</header>
+{% block content %}{% endblock %}
+</body>
+</html>
