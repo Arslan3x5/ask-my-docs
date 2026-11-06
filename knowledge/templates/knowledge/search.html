@@ -1,0 +1,35 @@
+{% extends "knowledge/base.html" %}
+{% block title %}Search · {{ ws.name }}{% endblock %}
+{% block content %}
+<style>
+.res{padding:1rem 1.2rem;border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:.9rem}
+.res .meta{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem;color:var(--muted);font-size:.92rem}
+.res .meta a{font-weight:700}
+.res .bar{margin-left:auto;width:90px;height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.res .bar i{display:block;height:100%;background:var(--accent)}
+.res p{margin:0}
+mark{background:color-mix(in srgb,var(--accent) 28%,transparent);color:inherit;border-radius:4px;padding:0 .15em}
+</style>
+<main>
+  <p><a href="{% url 'workspace_detail' ws.pk %}">Back to {{ ws.name }}</a></p>
+  <h1>Search</h1>
+  <form class="card add" method="get">
+    <input name="q" value="{{ q }}" placeholder="Search, e.g. refund policy" aria-label="Search your documents" autofocus>
+    <button class="btn" type="submit">Search</button>
+  </form>
+  {% if q %}
+  <p class="sub" style="margin-top:1rem">{{ results|length }} matching passage{{ results|length|pluralize }} for "{{ q }}"</p>
+  {% for r in results %}
+  <article class="res">
+    <div class="meta"><strong>{{ forloop.counter }}.</strong>
+      <a href="{% url 'document_detail' ws.pk r.chunk.document.pk %}">{{ r.chunk.document.name }}</a>{% if r.chunk.page %}, page {{ r.chunk.page }}{% endif %}
+      <span class="bar" title="Relevance"><i style="width:{{ r.pct }}%"></i></span></div>
+    <p>{{ r.html }}</p>
+  </article>
+  {% empty %}
+  <div class="card"><strong>No matching passages.</strong>
+    <p class="sub" style="margin:.3rem 0 0">Try different words, or upload a document that covers this topic.</p></div>
+  {% endfor %}
+  {% endif %}
+</main>
+{% endblock %}
