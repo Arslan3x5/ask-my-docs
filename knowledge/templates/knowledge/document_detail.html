@@ -1,0 +1,16 @@
+{% extends "knowledge/base.html" %}
+{% block title %}{{ doc.name }} · AskMyDocs{% endblock %}
+{% block content %}
+<style>
+.pass{padding:1rem 1.1rem;border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:.8rem}
+.pass small{display:block;color:var(--muted);margin-bottom:.3rem}
+</style>
+<main>
+  <p><a href="{% url 'workspace_detail' ws.pk %}">Back to {{ ws.name }}</a></p>
+  <h1>{{ doc.name }}</h1>
+  <p class="sub">{{ total }} passages from {{ doc.chars }} characters. Showing the first {{ chunks|length }} so you can check the extraction.</p>
+  {% for c in chunks %}
+  <div class="pass"><small>Passage {{ c.position|add:1 }}{% if c.page %}, page {{ c.page }}{% endif %}</small>{{ c.text }}</div>
+  {% endfor %}
+</main>
+{% endblock %}

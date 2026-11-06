@@ -1,13 +1,44 @@
 {% extends "knowledge/base.html" %}
 {% block title %}{{ ws.name }} · AskMyDocs{% endblock %}
 {% block content %}
+<style>
+.up{display:grid;gap:.8rem}
+.up input[type=file]{padding:1.2rem;border:2px dashed var(--line);border-radius:12px}
+.docs{display:grid;gap:.7rem;margin:1.2rem 0}
+.doc{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.9rem 1.1rem;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.doc a{font-weight:700;text-decoration:none}
+.doc small{display:block;color:var(--muted)}
+.doc form{margin:0}
+.note{color:var(--muted);font-size:.9rem}
+</style>
 <main>
   <p><a href="{% url 'workspaces' %}">All workspaces</a></p>
   <h1>{{ ws.name }}</h1>
-  <p class="sub">Documents will appear here once uploads are added in the next stage.</p>
+  <p class="sub">Upload documents to make them searchable. Everything is processed on this server.</p>
+
+  <form class="card up" method="post" enctype="multipart/form-data">{% csrf_token %}
+    {{ form.file }}
+    {{ form.file.errors }}
+    <div><button class="btn" type="submit">Upload and index</button></div>
+    <p class="note" style="margin:0">PDF, TXT or Markdown. The original file is not stored, only its extracted text.</p>
+  </form>
+
+  <div class="docs">
+    {% for d in docs %}
+    <div class="doc">
+      <div><a href="{% url 'document_detail' ws.pk d.pk %}">{{ d.name }}</a>
+        <small>{{ d.n }} passages{% if d.kind == "pdf" %}, {{ d.pages }} pages{% endif %}</small></div>
+      <form method="post" action="{% url 'document_delete' ws.pk d.pk %}" onsubmit="return confirm('Delete this document?')">{% csrf_token %}
+        <button class="btn ghost" type="submit">Delete</button></form>
+    </div>
+    {% empty %}
+    <p class="sub">No documents yet. Upload your first file above.</p>
+    {% endfor %}
+  </div>
+
   <div class="card">
     <strong>Delete this workspace</strong>
-    <p class="sub" style="margin:.3rem 0 .8rem">This permanently removes the workspace and everything in it.</p>
+    <p class="sub" style="margin:.3rem 0 .8rem">This permanently removes the workspace and all its text.</p>
     <form method="post" action="{% url 'workspace_delete' ws.pk %}" onsubmit="return confirm('Delete this workspace and all its documents?')">{% csrf_token %}
       <button class="btn danger" type="submit">Delete workspace</button>
     </form>
