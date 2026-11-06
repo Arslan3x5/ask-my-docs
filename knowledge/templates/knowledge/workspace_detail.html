@@ -16,6 +16,10 @@
   <h1>{{ ws.name }}</h1>
   <p class="sub">Upload documents to make them searchable. Everything is processed on this server.</p>
 
+  <form class="card add" method="get" action="{% url 'workspace_ask' ws.pk %}" style="margin-bottom:1rem">
+    <input name="q" placeholder="Ask a question about your documents" aria-label="Ask a question">
+    <button class="btn" type="submit">Ask</button>
+  </form>
   <form class="card add" method="get" action="{% url 'workspace_search' ws.pk %}" style="margin-bottom:1rem">
     <input name="q" placeholder="Search your documents" aria-label="Search your documents">
     <button class="btn" type="submit">Search</button>
