@@ -1,0 +1,57 @@
+{% extends "knowledge/base.html" %}
+{% block title %}Ask · {{ ws.name }}{% endblock %}
+{% block content %}
+<style>
+.ans{padding:1.4rem 1.5rem;border-radius:18px;border:1px solid var(--line);background:var(--panel);margin-top:1.2rem}
+.ans.ok{border-left:6px solid var(--accent)}
+.ans.no{border-left:6px solid var(--bad)}
+.ans .big{font-size:1.25rem;line-height:1.5;margin:.7rem 0 1rem;font-weight:600}
+.badge{display:inline-block;padding:.15rem .7rem;border-radius:99px;font-size:.8rem;font-weight:700;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent)}
+.badge.warn{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.src{color:var(--muted);font-size:.95rem}
+.ans details{margin-top:.9rem}
+.ans summary{cursor:pointer;font-weight:600}
+.pass{padding:.9rem 1rem;border:1px solid var(--line);border-radius:12px;margin:.6rem 0;background:var(--bg)}
+.pass small{display:block;color:var(--muted);margin-bottom:.3rem}
+mark{background:color-mix(in srgb,var(--accent) 28%,transparent);color:inherit;border-radius:4px;padding:0 .15em}
+</style>
+<main>
+  <p><a href="{% url 'workspace_detail' ws.pk %}">Back to {{ ws.name }}</a></p>
+  <h1>Ask a question</h1>
+  <p class="sub">Answers come only from your documents. If they don't cover the question, you'll be told so.</p>
+  <form class="card add" method="get">
+    <input name="q" value="{{ q }}" placeholder="e.g. How many days do I have to ask for a refund?" aria-label="Your question" autofocus>
+    <button class="btn" type="submit">Ask</button>
+  </form>
+
+  {% if asked %}
+  {% if found %}
+  <section class="ans ok">
+    <span class="badge">Confidence: {{ confidence }}</span>
+    <p class="big">{{ sentence }}</p>
+    <p class="src">Source: <a href="{% url 'document_detail' ws.pk best.chunk.document.pk %}">{{ best.chunk.document.name }}</a>{% if best.chunk.page %}, page {{ best.chunk.page }}{% endif %}.
+      This passage contains {{ matched }} of the {{ terms }} key words in your question.</p>
+    <details><summary>Show the full passage</summary><div class="pass">{{ best.html }}</div></details>
+    {% if others %}
+    <details><summary>{{ others|length }} more passage{{ others|length|pluralize }} that cover{{ others|length|pluralize:"s," }} this</summary>
+      {% for o in others %}
+      <div class="pass"><small>{{ o.chunk.document.name }}{% if o.chunk.page %}, page {{ o.chunk.page }}{% endif %}</small>{{ o.html }}</div>
+      {% endfor %}
+    </details>
+    {% endif %}
+  </section>
+  {% else %}
+  <section class="ans no">
+    <span class="badge warn">Not found</span>
+    <p class="big">Not found in your documents.</p>
+    <p class="src">Nothing was guessed. Try different words, or upload a document that covers this topic.</p>
+    {% if best %}
+    <details><summary>Closest passage found (a weak match, not an answer)</summary>
+      <div class="pass"><small>{{ best.chunk.document.name }}{% if best.chunk.page %}, page {{ best.chunk.page }}{% endif %}</small>{{ best.html }}</div>
+    </details>
+    {% endif %}
+  </section>
+  {% endif %}
+  {% endif %}
+</main>
+{% endblock %}

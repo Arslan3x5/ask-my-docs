@@ -191,3 +191,65 @@ class SearchViewTests(TestCase):
 
     def test_no_results_message(self):
         self.assertContains(self.search("zebra"), "No matching passages")
+
+
+from .search import answer, best_sentence
+
+
+class AnswerLogicTests(TestCase):
+    PASSAGES = [
+        (1, "Refunds are allowed within 30 days of purchase."),
+        (2, "Staff receive 20 days of annual leave."),
+    ]
+
+    def test_answers_when_question_words_are_covered(self):
+        result = answer("refund within 30 days", self.PASSAGES)
+        self.assertTrue(result["found"])
+        self.assertEqual(result["best"], 1)
+        self.assertEqual(result["sentence"], "Refunds are allowed within 30 days of purchase.")
+
+    def test_refuses_when_coverage_is_low(self):
+        result = answer("refund policy for enterprise customers abroad", self.PASSAGES)
+        self.assertFalse(result["found"])
+
+    def test_unknown_topic_is_not_found(self):
+        result = answer("zebra", self.PASSAGES)
+        self.assertFalse(result["found"])
+        self.assertEqual(result["hits"], [])
+
+    def test_best_sentence_is_picked(self):
+        text = "Our office is in Lahore. Refunds are allowed within 30 days. Staff get leave."
+        self.assertEqual(best_sentence(text, "how many days for refunds"), "Refunds are allowed within 30 days.")
+
+
+class AskViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("arslan", password="pass12345")
+        self.client.login(username="arslan", password="pass12345")
+        self.ws = Workspace.objects.create(owner=self.user, name="Policies")
+        doc = Document.objects.create(workspace=self.ws, name="policy.pdf", kind="pdf", pages=2)
+        Chunk.objects.create(document=doc, workspace=self.ws, position=0, page=2,
+                             text="Refunds are allowed within 30 days of purchase.")
+
+    def ask(self, q):
+        return self.client.get(reverse("workspace_ask", args=[self.ws.pk]), {"q": q})
+
+    def test_requires_login(self):
+        self.client.logout()
+        self.assertEqual(self.ask("refund").status_code, 302)
+
+    def test_found_answer_shows_source_and_confidence(self):
+        response = self.ask("refund within 30 days")
+        self.assertContains(response, "policy.pdf")
+        self.assertContains(response, "page 2")
+        self.assertContains(response, "Confidence: High")
+
+    def test_weak_match_is_not_found(self):
+        response = self.ask("refund policy for enterprise customers abroad")
+        self.assertContains(response, "Not found in your documents")
+        self.assertNotContains(response, 'class="ans ok"')
+
+    def test_other_users_get_404(self):
+        User.objects.create_user("other", password="pass12345")
+        self.client.login(username="other", password="pass12345")
+        self.assertEqual(self.ask("refund").status_code, 404)
