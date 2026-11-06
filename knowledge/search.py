@@ -65,3 +65,32 @@ def highlight(text, query):
             last = m.end()
     out.append(html.escape(text[last:]))
     return "".join(out)
+
+SENT = re.compile(r"(?<=[.!?])\s+|\n\s*\n")
+
+
+def best_sentence(text, query):
+    """The sentence in a passage that shares the most words with the question."""
+    terms = set(tokens(query))
+    sentences = [s.strip() for s in SENT.split(text) if s.strip()]
+    if not sentences:
+        return text
+    return max(sentences, key=lambda s: len(terms & set(tokens(s))))
+
+
+def answer(query, passages, min_coverage=0.5):
+    """Answer only when enough of the question's key words appear in one passage."""
+    terms = set(tokens(query))
+    ranked = rank(query, passages, top=4)
+    if not terms or not ranked:
+        return {"found": False, "hits": [], "best": None, "terms": len(terms)}
+    texts = dict(passages)
+    hits = [
+        {"id": pid, "coverage": len(terms & set(tokens(texts[pid]))) / len(terms)}
+        for pid, _ in ranked
+    ]
+    best = max(hits, key=lambda h: h["coverage"])
+    result = {"found": best["coverage"] >= min_coverage, "hits": hits, "best": best["id"], "terms": len(terms)}
+    if result["found"]:
+        result["sentence"] = best_sentence(texts[best["id"]], query)
+    return result
