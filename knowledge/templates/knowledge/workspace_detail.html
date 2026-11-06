@@ -16,6 +16,10 @@
   <h1>{{ ws.name }}</h1>
   <p class="sub">Upload documents to make them searchable. Everything is processed on this server.</p>
 
+  <form class="card add" method="get" action="{% url 'workspace_search' ws.pk %}" style="margin-bottom:1rem">
+    <input name="q" placeholder="Search your documents" aria-label="Search your documents">
+    <button class="btn" type="submit">Search</button>
+  </form>
   <form class="card up" method="post" enctype="multipart/form-data">{% csrf_token %}
     {{ form.file }}
     {{ form.file.errors }}

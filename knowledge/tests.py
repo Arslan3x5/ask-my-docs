@@ -122,3 +122,72 @@ class UploadTests(TestCase):
         self.upload("policy.txt", b"Some policy text.")
         self.client.post(reverse("workspace_delete", args=[self.ws.pk]))
         self.assertEqual((Workspace.objects.count(), Document.objects.count(), Chunk.objects.count()), (0, 0, 0))
+
+from .search import highlight, rank, tokens
+
+
+class SearchLogicTests(TestCase):
+    PASSAGES = [
+        (1, "Refunds are allowed within 30 days of purchase."),
+        (2, "Staff receive 20 days of annual leave."),
+        (3, "The office is closed on public holidays."),
+    ]
+
+    def test_best_passage_ranks_first(self):
+        self.assertEqual(rank("annual leave days", self.PASSAGES)[0][0], 2)
+
+    def test_stemming_matches_word_forms(self):
+        self.assertEqual(tokens("Refunded refunds refund"), ["refund", "refund", "refund"])
+        self.assertEqual(rank("refund", self.PASSAGES)[0][0], 1)
+
+    def test_empty_and_stopword_queries_return_nothing(self):
+        self.assertEqual(rank("", self.PASSAGES), [])
+        self.assertEqual(rank("the of", self.PASSAGES), [])
+
+    def test_no_match_returns_nothing(self):
+        self.assertEqual(rank("zebra", self.PASSAGES), [])
+
+    def test_highlight_escapes_html(self):
+        result = highlight("<script>alert(1)</script> Refunds ok", "refund")
+        self.assertNotIn("<script>", result)
+        self.assertIn("<mark>Refunds</mark>", result)
+
+
+class SearchViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("arslan", password="pass12345")
+        self.client.login(username="arslan", password="pass12345")
+        self.ws = Workspace.objects.create(owner=self.user, name="Policies")
+        doc = Document.objects.create(workspace=self.ws, name="policy.pdf", kind="pdf", pages=2)
+        Chunk.objects.create(document=doc, workspace=self.ws, position=0, page=2,
+                             text="Refunds are allowed within 30 days of purchase.")
+        Chunk.objects.create(document=doc, workspace=self.ws, position=1, page=1,
+                             text="Staff receive 20 days of annual leave.")
+
+    def search(self, q, ws=None):
+        return self.client.get(reverse("workspace_search", args=[(ws or self.ws).pk]), {"q": q})
+
+    def test_search_requires_login(self):
+        self.client.logout()
+        self.assertEqual(self.search("refund").status_code, 302)
+
+    def test_results_show_source_and_highlight(self):
+        response = self.search("refund")
+        self.assertContains(response, "<mark>Refunds</mark>")
+        self.assertContains(response, "policy.pdf")
+        self.assertContains(response, "page 2")
+
+    def test_only_searches_this_workspace(self):
+        other = Workspace.objects.create(owner=self.user, name="Other")
+        doc = Document.objects.create(workspace=other, name="secret.txt", kind="txt")
+        Chunk.objects.create(document=doc, workspace=other, position=0, text="Refund secrets live here.")
+        response = self.search("refund")
+        self.assertNotContains(response, "secret.txt")
+
+    def test_other_users_get_404(self):
+        User.objects.create_user("other", password="pass12345")
+        self.client.login(username="other", password="pass12345")
+        self.assertEqual(self.search("refund").status_code, 404)
+
+    def test_no_results_message(self):
+        self.assertContains(self.search("zebra"), "No matching passages")
