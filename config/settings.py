@@ -51,7 +51,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": os.getenv("DB_PATH", BASE_DIR / "db.sqlite3"),
     }
 }
 
@@ -70,7 +70,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-if not DEBUG:
+if not DEBUG and os.getenv("USE_HTTPS", "1") == "1":
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
@@ -81,3 +81,9 @@ LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/login/"
 
+
+OFFLINE_MODE = os.getenv("OFFLINE_MODE", "1") == "1"
+OFFLINE_ALLOW_HOSTS = [h for h in os.getenv("OFFLINE_ALLOW_HOSTS", "").split(",") if h]
+
+if not DEBUG and SECRET_KEY == "dev-only-change-me":
+    raise RuntimeError("Set a real SECRET_KEY when DEBUG=0.")
