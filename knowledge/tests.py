@@ -328,3 +328,53 @@ class EvaluationViewTests(TestCase):
         question = EvalQuestion.objects.create(workspace=self.ws, question="Refund?", expected_phrase="30")
         self.client.post(reverse("eval_delete", args=[self.ws.pk, question.pk]))
         self.assertEqual(EvalQuestion.objects.count(), 0)
+
+
+import re
+import socket
+from pathlib import Path
+
+from django.conf import settings
+
+from .offline import NetworkBlocked, is_allowed
+
+
+class OfflineModeTests(TestCase):
+    def test_offline_mode_is_on_by_default(self):
+        self.assertTrue(settings.OFFLINE_MODE)
+
+    def test_outbound_connection_is_blocked(self):
+        with self.assertRaises(NetworkBlocked):
+            socket.socket().connect(("203.0.113.1", 80))
+
+    def test_dns_lookup_of_a_public_host_is_blocked(self):
+        with self.assertRaises(NetworkBlocked):
+            socket.getaddrinfo("example.com", 80)
+
+    def test_loopback_still_works(self):
+        server = socket.socket()
+        server.bind(("127.0.0.1", 0))
+        server.listen(1)
+        client = socket.socket()
+        client.settimeout(2)
+        client.connect(server.getsockname())
+        client.close()
+        server.close()
+
+    def test_allow_list_logic(self):
+        self.assertTrue(is_allowed("127.0.0.1"))
+        self.assertTrue(is_allowed("localhost"))
+        self.assertTrue(is_allowed("db.internal", ("db.internal",)))
+        self.assertFalse(is_allowed("example.com"))
+        self.assertFalse(is_allowed("10.0.0.5"))
+
+    def test_app_code_imports_no_network_libraries(self):
+        pattern = re.compile(
+            r"^\s*(?:import|from)\s+(requests|urllib|httpx|aiohttp|smtplib|ftplib|socket|http\.client)\b", re.M
+        )
+        skip = {"offline.py", "tests.py"}
+        offenders = [
+            p.name for p in Path(__file__).parent.glob("*.py")
+            if p.name not in skip and pattern.search(p.read_text(encoding="utf-8"))
+        ]
+        self.assertEqual(offenders, [])

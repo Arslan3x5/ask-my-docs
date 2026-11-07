@@ -1,0 +1,19 @@
+services:
+  askmydocs:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DEBUG: "0"
+      SECRET_KEY: "${SECRET_KEY:?Create a .env file with SECRET_KEY=... first}"
+      ALLOWED_HOSTS: "${ALLOWED_HOSTS:-localhost,127.0.0.1}"
+      CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS:-http://localhost:8000}"
+      OFFLINE_MODE: "1"
+      USE_HTTPS: "${USE_HTTPS:-0}"
+      DB_PATH: /data/db.sqlite3
+    volumes:
+      - askmydocs-data:/data
+    restart: unless-stopped
+
+volumes:
+  askmydocs-data:
