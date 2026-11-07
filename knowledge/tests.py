@@ -253,3 +253,78 @@ class AskViewTests(TestCase):
         User.objects.create_user("other", password="pass12345")
         self.client.login(username="other", password="pass12345")
         self.assertEqual(self.ask("refund").status_code, 404)
+
+
+from .evaluation import evaluate, parse_lines
+from .models import EvalQuestion
+
+
+class EvaluationLogicTests(TestCase):
+    PASSAGES = [
+        (1, "Refunds are allowed within 30 days of purchase."),
+        (2, "Staff receive 20 days of annual leave."),
+    ]
+
+    def test_parse_lines_handles_bars_blanks_and_spaces(self):
+        text = "a | b\n\n  c  \n | x\nd|"
+        self.assertEqual(parse_lines(text), [("a", "b"), ("c", ""), ("d", "")])
+
+    def test_each_outcome_is_scored(self):
+        questions = [
+            (1, "refund within 30 days", "30 days"),
+            (2, "annual leave days", "20 days"),
+            (3, "what colour is the ceo's car", ""),
+            (4, "refund within 30 days", "20 days"),
+            (5, "refund policy for enterprise customers abroad", "30 days"),
+            (6, "refund within 30 days", ""),
+        ]
+        rows, summary = evaluate(questions, self.PASSAGES, 0.5)
+        self.assertEqual([r["outcome"] for r in rows],
+                         ["correct", "correct", "refused", "wrong", "missed", "wrong"])
+        self.assertEqual((summary["passed"], summary["total"], summary["pct"]), (3, 6, 50))
+
+
+class EvaluationViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("arslan", password="pass12345")
+        self.client.login(username="arslan", password="pass12345")
+        self.ws = Workspace.objects.create(owner=self.user, name="Policies")
+        doc = Document.objects.create(workspace=self.ws, name="policy.pdf", kind="pdf", pages=1)
+        Chunk.objects.create(document=doc, workspace=self.ws, position=0, page=1,
+                             text="Refunds are allowed within 30 days of purchase.")
+        self.url = reverse("workspace_eval", args=[self.ws.pk])
+
+    def test_requires_login(self):
+        self.client.logout()
+        self.assertEqual(self.client.get(self.url).status_code, 302)
+
+    def test_other_users_get_404(self):
+        question = EvalQuestion.objects.create(workspace=self.ws, question="Refund?", expected_phrase="30")
+        User.objects.create_user("other", password="pass12345")
+        self.client.login(username="other", password="pass12345")
+        self.assertEqual(self.client.get(self.url).status_code, 404)
+        delete_url = reverse("eval_delete", args=[self.ws.pk, question.pk])
+        self.assertEqual(self.client.post(delete_url).status_code, 404)
+        self.assertEqual(EvalQuestion.objects.count(), 1)
+
+    def test_adding_questions_parses_the_bar(self):
+        self.client.post(self.url, {"lines": "How long do refunds take? | 30 days\nWhat is the CEO's favourite colour?"})
+        self.assertEqual(EvalQuestion.objects.count(), 2)
+        self.assertEqual(EvalQuestion.objects.get(question__startswith="What").expected_phrase, "")
+
+    def test_page_shows_the_score(self):
+        self.client.post(self.url, {"lines": "refund within 30 days | 30 days\nwhat colour is the ceo's car"})
+        response = self.client.get(self.url)
+        self.assertContains(response, "100%")
+        self.assertContains(response, "Correctly refused")
+
+    def test_question_limit(self):
+        lines = "\n".join(f"question {i}" for i in range(51))
+        response = self.client.post(self.url, {"lines": lines})
+        self.assertContains(response, "at most 50 questions")
+        self.assertEqual(EvalQuestion.objects.count(), 0)
+
+    def test_delete_question(self):
+        question = EvalQuestion.objects.create(workspace=self.ws, question="Refund?", expected_phrase="30")
+        self.client.post(reverse("eval_delete", args=[self.ws.pk, question.pk]))
+        self.assertEqual(EvalQuestion.objects.count(), 0)

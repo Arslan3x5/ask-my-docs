@@ -16,6 +16,7 @@
   <h1>{{ ws.name }}</h1>
   <p class="sub">Upload documents to make them searchable. Everything is processed on this server.</p>
 
+  <p class="note"><a href="{% url 'workspace_eval' ws.pk %}">Test the accuracy of answers in this workspace</a></p>
   <form class="card add" method="get" action="{% url 'workspace_ask' ws.pk %}" style="margin-bottom:1rem">
     <input name="q" placeholder="Ask a question about your documents" aria-label="Ask a question">
     <button class="btn" type="submit">Ask</button>

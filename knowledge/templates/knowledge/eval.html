@@ -1,0 +1,58 @@
+{% extends "knowledge/base.html" %}
+{% block title %}Accuracy test · {{ ws.name }}{% endblock %}
+{% block content %}
+<style>
+textarea{width:100%;padding:.7rem .9rem;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:inherit;font:inherit}
+.score{display:grid;grid-template-columns:auto 1fr;gap:1.4rem;align-items:center;margin:1.2rem 0}
+.score .pct{font-size:3.2rem;font-weight:800;letter-spacing:-.04em;line-height:1}
+.counts{display:flex;flex-wrap:wrap;gap:.6rem}
+.counts span{padding:.25rem .8rem;border-radius:99px;border:1px solid var(--line);font-size:.9rem}
+.qrow{display:grid;grid-template-columns:1fr auto auto;gap:.9rem;align-items:center;padding:.9rem 1.1rem;border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:.7rem}
+.qrow small{display:block;color:var(--muted)}
+.qrow form{margin:0}
+.badge{display:inline-block;padding:.15rem .7rem;border-radius:99px;font-size:.8rem;font-weight:700;white-space:nowrap}
+.badge.ok{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent)}
+.badge.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+@media (max-width:640px){.qrow{grid-template-columns:1fr}.score{grid-template-columns:1fr}}
+</style>
+<main>
+  <p><a href="{% url 'workspace_detail' ws.pk %}">Back to {{ ws.name }}</a></p>
+  <h1>Accuracy test</h1>
+  <p class="sub">Write questions you already know the answers to. The page shows how often the app finds the right passage, and how often it correctly refuses.</p>
+
+  {% if summary.total %}
+  <div class="card score">
+    <div class="pct">{{ summary.pct }}%</div>
+    <div>
+      <strong>{{ summary.passed }} of {{ summary.total }} questions behaved as expected</strong>
+      <div class="counts" style="margin-top:.5rem">
+        <span>{{ summary.correct }} correct</span><span>{{ summary.refused }} correctly refused</span>
+        <span>{{ summary.wrong }} wrong</span><span>{{ summary.missed }} missed</span>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <form class="card" method="post" style="display:grid;gap:.8rem">{% csrf_token %}
+    {{ form.lines }}
+    {{ form.lines.errors }}
+    <div><button class="btn" type="submit">Add questions</button></div>
+  </form>
+
+  <div style="margin-top:1.4rem">
+  {% for r in rows %}
+  <div class="qrow">
+    <div><strong>{{ r.question }}</strong>
+      <small>{% if r.expected %}Expected phrase: "{{ r.expected }}"{% else %}Should not be answerable{% endif %}</small>
+      {% if r.outcome == "wrong" %}<small>Answered from {{ r.source }}{% if r.expected %}, which does not contain the expected phrase.{% else %}, but this should not be answerable.{% endif %}</small>{% endif %}
+      {% if r.outcome == "missed" %}<small>The documents did not match strongly enough to answer.</small>{% endif %}
+    </div>
+    <span class="badge {% if r.passed %}ok{% else %}bad{% endif %}">{{ r.label }}</span>
+    <form method="post" action="{% url 'eval_delete' ws.pk r.id %}">{% csrf_token %}<button class="btn ghost" type="submit">Remove</button></form>
+  </div>
+  {% empty %}
+  <p class="sub">No questions yet. Add a few above to see a score.</p>
+  {% endfor %}
+  </div>
+</main>
+{% endblock %}
