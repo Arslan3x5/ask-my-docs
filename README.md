@@ -4,7 +4,7 @@
 
 Ask questions about your own PDF and text documents. It runs **entirely on your own server, with no AI service and no outside connections**, and it says "Not found in your documents" instead of guessing.
 
-**Live demo:** https://YOUR-DEMO-LINK (public demo: please use the sample file, not private documents)
+**Demo video:** https://youtu.be/Tspg8KWvDOs
 **Try it with:** [sample document](sample_data/northwind_handbook.pdf) and [test questions](sample_data/northwind_test_questions.txt)
 
 | Answer with source | Not found |
